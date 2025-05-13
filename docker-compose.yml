@@ -1,8 +1,10 @@
 version: '3.8'
+
 services:
   vault:
     image: hashicorp/vault:1.16.1
     container_name: vault-server
+    hostname: vault
     ports:
       - "8200:8200"
     environment:
@@ -16,15 +18,17 @@ services:
     command: vault server -dev
     healthcheck:
       test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     networks:
       - app-network
 
   redis:
     image: redis:7.0.12-alpine
     container_name: redis-server
+    hostname: redis
     ports:
       - "6379:6379"
     volumes:
@@ -45,33 +49,46 @@ services:
     ports:
       - "8080:8080"
     environment:
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root
-      SPRING_CLOUD_VAULT_HOST: vault
-      SPRING_CLOUD_VAULT_PORT: 8200
-      SPRING_CLOUD_VAULT_SCHEME: http
-      SPRING_CLOUD_VAULT_KV_DEFAULT_CONTEXT: redis-config
-      SPRING_CLOUD_VAULT_KV_APPLICATION_NAME: production
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: ""
+      # Vault Configuration
+      SPRING_CLOUD_VAULT_URI: "http://vault:8200"
+      SPRING_CLOUD_VAULT_TOKEN: "root"
+      SPRING_CLOUD_VAULT_KV_ENABLED: "true"
+      SPRING_CLOUD_VAULT_KV_BACKEND: "secret"
+      SPRING_CLOUD_VAULT_CONFIG_TIMEOUT: "15000" # 15 saniye
+
+      # Redis Configuration
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: ""
+
+      # Application Profile
+      SPRING_PROFILES_ACTIVE: "docker"
     depends_on:
-      - vault
-      - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      vault:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s # Uygulamanın başlaması için ek süre
 
 networks:
   app-network:
     driver: bridge
+    #ipam:
+    #  config:
+    #    - subnet: 172.20.0.0/16
+    #    - gateway: 172.20.0.1
 
 volumes:
   vault_data:
+    driver: local
   vault_config:
+    driver: local
   redis_data:
+    driver: local

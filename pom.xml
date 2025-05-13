@@ -29,6 +29,8 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <start-class>io.github.enessaidtatli.vaultredisapp.VaultRedisAppApplication</start-class>
     </properties>
     <dependencies>
         <dependency>
@@ -71,7 +73,19 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.4.5</version>
+                <configuration>
+                    <mainClass>io.github.enessaidtatli.vaultredisapp.VaultRedisAppApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+
         </plugins>
     </build>
 
